@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { MoreMenu } from './more-menu'
 import { Gallery } from './gallery'; // Import the Gallery component
+import { eventsApi } from '../services/api';
+import { EventData } from '../types/event';
+
 
 
 interface Event {
@@ -22,31 +25,27 @@ interface Event {
 export default function TravelApp() {
   const router = useRouter()
   const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'previous'>('upcoming')
-  const [events, setEvents] = useState<Event[]>([])
+  const [events, setEvents] = useState<EventData[]>([]);
   const [isLoading, setIsLoading] = useState(true)
   const [activePage, setActivePage] = useState<'home' | 'gallery' | 'profile'>('home'); // Track the active page
 
 
   useEffect(() => {
     async function fetchEvents() {
-      setIsLoading(true)
+      if (activePage !== 'home') return;
+      
+      setIsLoading(true);
       try {
-        const response = await fetch(`/api/events?filter=${selectedFilter}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch events')
-        }
-        const data = await response.json()
-        setEvents(data)
+        const data = await eventsApi.getEvents(selectedFilter);
+        setEvents(data);
       } catch (error) {
-        console.error('Error fetching events:', error)
+        console.error('Error:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    if (activePage === 'home') {
-      fetchEvents();
-    }
+    fetchEvents();
   }, [selectedFilter, activePage]);
 
 
@@ -82,7 +81,7 @@ export default function TravelApp() {
     return eventDate.toDateString() === today.toDateString()
   })
 
-  const renderEventCard = (event: Event) => (
+  const renderEventCard = (event: EventData) => (
     <div
       key={event.id}
       className={cn(

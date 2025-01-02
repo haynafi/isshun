@@ -4,50 +4,46 @@ import { useEffect, useState, useRef } from 'react'
 import { Camera, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useParams } from 'next/navigation'
-import { Event } from '@/types/event'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { eventsApi } from '../services/api'
+import { EventData } from '@/types/event'
 
 export function TicketDetail() {
-  const [event, setEvent] = useState<Event | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [event, setEvent] = useState<EventData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null); // For the captured photo
-  const [isCapturing, setIsCapturing] = useState(false)
-  const [isCameraReady, setIsCameraReady] = useState(false)
-  
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  
-  const params = useParams()
-  const { id } = params
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const { id } = useParams();
 
   useEffect(() => {
     async function fetchEvent() {
-      setIsLoading(true)
-      setError(null)
-
+      setIsLoading(true);
+      setError(null);
+  
       try {
-        const response = await fetch(`/api/events/${id}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch event')
-        }
-        const data = await response.json()
-        setEvent(data)
-        if (data.photo_path) {
-          setPhoto(data.photo_path)
+        if (!id || Array.isArray(id)) throw new Error('Invalid Event ID');
+        const eventData = await eventsApi.getEventById(id);
+        setEvent(eventData);
+  
+        if (eventData.photo_path) {
+          setPhoto(eventData.photo_path);
         }
       } catch (error) {
-        console.error('Error fetching event:', error)
-        setError(error instanceof Error ? error.message : 'Failed to fetch event')
+        console.error('Error fetching event:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch event');
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
-
-    if (id) {
-      fetchEvent()
-    }
-  }, [id])
+  
+    fetchEvent();
+  }, [id]);
 
   const startCamera = async () => {
     try {
