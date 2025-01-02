@@ -32,9 +32,8 @@ export function QRCodeUploader({ eventId }: QRCodeUploaderProps) {
         throw new Error('Upload failed')
       }
 
-      const data = await response.json()
       setMessage('QR Code uploaded successfully')
-    } catch (error) {
+    } catch {
       setMessage('Failed to upload QR Code')
     } finally {
       setUploading(false)
@@ -60,4 +59,3 @@ export function QRCodeUploader({ eventId }: QRCodeUploaderProps) {
     </form>
   )
 }
-

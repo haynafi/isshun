@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Camera, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Event } from '@/types/event'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 

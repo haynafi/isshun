@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const qrCodePath = await handleQRCodeUpload(formData.get('qrCode') as File)
+    const qrCodePath = await handleQRCodeUpload(formData.get('qrCode') as File | null)
     const newEvent = await createEvent({ ...eventData, qrCodePath })
 
     return NextResponse.json(
@@ -72,7 +72,16 @@ async function getPreviousEvents(): Promise<Event[]> {
   ) as Event[];
 }
 
-async function extractEventData(formData: FormData) {
+interface EventFormData {
+  title: string;
+  place: string;
+  gradient: string;
+  icon: string;
+  date: string;
+  time: string;
+}
+
+async function extractEventData(formData: FormData): Promise<EventFormData> {
   return {
     title: formData.get('title') as string,
     place: formData.get('place') as string,
@@ -83,13 +92,15 @@ async function extractEventData(formData: FormData) {
   }
 }
 
-function isValidEventData(data: any) {
-  return data.title &&
-         data.place &&
-         data.gradient &&
-         data.icon &&
-         data.date &&
-         data.time
+function isValidEventData(data: EventFormData): boolean {
+  return Boolean(
+    data.title &&
+    data.place &&
+    data.gradient &&
+    data.icon &&
+    data.date &&
+    data.time
+  )
 }
 
 async function handleQRCodeUpload(file: File | null): Promise<string | null> {
@@ -112,7 +123,15 @@ async function handleQRCodeUpload(file: File | null): Promise<string | null> {
   }
 }
 
-async function createEvent(eventData: any) {
+interface EventDataWithQR extends EventFormData {
+  qrCodePath: string | null;
+}
+
+interface InsertResult {
+  insertId: number;
+}
+
+async function createEvent(eventData: EventDataWithQR): Promise<InsertResult> {
   const result = await query(
     `INSERT INTO events (
       title, place, gradient, icon, date, time, qr_code_path
@@ -127,5 +146,6 @@ async function createEvent(eventData: any) {
       eventData.qrCodePath
     ]
   )
-  return result as { insertId: number }
+  return result as InsertResult
 }
+

@@ -7,9 +7,50 @@ import fs from 'fs/promises';
 
 const DRIVE_FOLDER_ID = '11IBbJ_JMWeSX-TzwkQLCPNNSDfl2lkKk';
 
+// Define the type for credentials
+interface GoogleAuthCredentials {
+  type: string;
+  project_id: string | undefined;
+  private_key_id: string | undefined;
+  private_key: string | undefined;
+  client_email: string | undefined;
+  client_id: string | undefined;
+  auth_uri: string | undefined;
+  token_uri: string | undefined;
+  auth_provider_x509_cert_url: string | undefined;
+  client_x509_cert_url: string | undefined;
+  universe_domain: string | undefined;
+}
+
+// Set credentials
+const credentials: GoogleAuthCredentials = {
+  type: "service_account",
+  project_id: process.env.project_id,
+  private_key_id: process.env.private_key_id,
+  private_key: process.env.private_key ? process.env.private_key.replace(/\\n/g, '\n') : undefined, 
+  client_email: process.env.client_email,
+  client_id: process.env.client_id,
+  auth_uri: process.env.auth_uri,
+  token_uri: process.env.token_uri,
+  auth_provider_x509_cert_url: process.env.auth_provider_x509_cert_url,
+  client_x509_cert_url: process.env.client_x509_cert_url,
+  universe_domain: process.env.universe_domain,
+};
+
+// Validate credentials
+function validateCredentials(credentials: GoogleAuthCredentials) {
+  if (!credentials.project_id || !credentials.private_key || !credentials.client_email) {
+    throw new Error("Missing required credentials for Google Auth");
+  }
+}
+
+// Get Drive client
 async function getDriveClient() {
+  // Validate credentials before using
+  validateCredentials(credentials);
+
   const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(process.cwd(), 'credentials.json'),
+    credentials,  // Directly use the credentials object
     scopes: ['https://www.googleapis.com/auth/drive'],
   });
 

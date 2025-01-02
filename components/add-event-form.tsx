@@ -281,7 +281,7 @@ export function AddEventForm() {
         <FormField
           control={form.control}
           name="qrCode"
-          render={({ field: { onChange, value, ...rest } }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>QR Code (Optional)</FormLabel>
               <FormControl>
@@ -289,10 +289,11 @@ export function AddEventForm() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => {
-                    const file = e.target.files?.[0] || null; // Use `null` to clear the value
-                    onChange(file);
+                    const file = e.target.files?.[0] || null;
+                    field.onChange(file);
                   }}
-                  {...rest}
+                  // Remove the value prop to avoid controlled/uncontrolled warning
+                  // value={field.value ? undefined : ''}
                 />
               </FormControl>
               <FormMessage />

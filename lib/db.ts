@@ -11,7 +11,7 @@ const pool = mysql.createPool({
   queueLimit: 0
 })
 
-export async function query(sql: string, values: any[] = []) {
+export async function query(sql: string, values: unknown[] = []) {
   console.log('Executing SQL query:', sql)
   console.log('Query parameters:', values)
   
@@ -24,4 +24,3 @@ export async function query(sql: string, values: any[] = []) {
     throw error
   }
 }
-
