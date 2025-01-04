@@ -1,6 +1,6 @@
 import { EventData } from "@/types/event";
 
-const API_URL = 'https://isshun.site/bridge/';
+const API_URL = 'https://isshun.site/bridge';
 const API_KEY = process.env.BRIDGE_API_KEY; // Replace with your actual API key
 
 export const eventsApi = {
