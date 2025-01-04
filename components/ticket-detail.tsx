@@ -149,39 +149,38 @@ export function TicketDetail() {
 
   const handleTakePhoto = async () => {
     try {
-      if (!isCapturing) {
-        await startCamera()
-      } else if (isCameraReady) {
-        const photoData = capturePhoto()
-        if (!photoData) {
-          throw new Error('Failed to capture photo')
+        if (!isCapturing) {
+            await startCamera();
+        } else if (isCameraReady) {
+            const photoData = capturePhoto();
+            if (!photoData) {
+                throw new Error('Failed to capture photo');
+            }
+
+            setPhoto(photoData);
+            console.log('Uploading photo...');
+
+            const response = await fetch(photoData);
+            const blob = await response.blob();
+
+            const formData = new FormData();
+            formData.append('photo', blob, `photo_${id}.jpg`);
+
+            // Ensure id is defined and is a string before appending to FormData
+            if (typeof id === 'string') {
+                formData.append('eventId', id);
+            } else {
+                throw new Error('Event ID is undefined or not a string');
+            }
+
+            const uploadResponse = await eventsApi.uploadPhoto(formData);
+            console.log('Photo uploaded successfully:', uploadResponse.photoPath);
+            setPhoto(uploadResponse.photoPath);
         }
-
-        setPhoto(photoData)
-        console.log('Uploading photo...')
-
-        const response = await fetch('/api/upload-photo', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ photo: photoData, eventId: id }),
-        })
-
-        const data = await response.json()
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to upload photo')
-        }
-
-        console.log('Photo uploaded successfully')
-        setEvent((prev) => (prev ? { ...prev, photo_path: data.photoPath } : null))
-        stopCamera()
-      }
     } catch (error) {
-      console.error('Error handling photo:', error)
-      setError(error instanceof Error ? error.message : 'Failed to handle photo')
+        console.error('Error taking photo:', error);
     }
-  }
+}
 
   // Cleanup camera on unmount
   useEffect(() => {

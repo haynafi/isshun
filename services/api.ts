@@ -73,4 +73,23 @@ export const eventsApi = {
     }
     return response.json();
   },
+  // New method to upload a photo
+  async uploadPhoto(formData: FormData): Promise<{ photoPath: string }> {
+    if (!API_KEY) {
+      throw new Error('API Key is missing.');
+    }
+    const response = await fetch(`${API_URL}/update-photo`, {
+      method: 'POST',
+      headers: {
+        'x-api-key': API_KEY, // Let the browser handle Content-Type for FormData
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to upload photo');
+    }
+    return response.json();
+  },
 };
