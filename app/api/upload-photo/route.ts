@@ -57,6 +57,42 @@ async function getDriveClient() {
   return google.drive({ version: 'v3', auth });
 }
 
+async function updatePhotoPath(eventId: string, fileUrl: string | null | undefined) {
+  const API_URL = 'https://isshun.site/bridge/update-photo'; // Your API endpoint
+  const API_KEY = process.env.BRIDGE_API_KEY || 'h8UEevzsMDRKHanaPriska21hsKhMaNk';
+
+  if (!API_KEY) {
+    throw new Error('API Key is missing.');
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify({
+        fileUrl: fileUrl,
+        eventId: eventId,
+      }),
+    });
+
+    // Log the response details for debugging
+    const responseBody = await response.json();
+    console.log('Response from /bridge/update-photo:', responseBody);
+
+    if (!response.ok) {
+      throw new Error(`Failed to update photo path: ${responseBody.error || response.statusText}`);
+    }
+
+    return responseBody;
+  } catch (error) {
+    console.error('Error in updatePhotoPath API:', error);
+    throw error;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { photo, eventId } = await req.json();
@@ -131,7 +167,8 @@ export async function POST(req: NextRequest) {
     const fileUrl = response.data.webViewLink;
     console.log('File uploaded successfully. URL:', fileUrl);
 
-    await query('UPDATE events SET photo_path = ? WHERE id = ?', [fileUrl, eventId]);
+    // Update the photo path via the /bridge/update-photo API
+    await updatePhotoPath(eventId, fileUrl);
 
     return NextResponse.json({ 
       photoPath: fileUrl,

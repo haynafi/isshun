@@ -55,25 +55,17 @@ export default function TravelApp() {
 
   const handleStatusUpdate = async (id: number, status: 'accepted' | 'declined') => {
     try {
-      const response = await fetch(`/api/events/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update event status')
-      }
-
+      // Call the API function instead of fetch
+      const response = await eventsApi.updateEventStatus(id.toString(), status);
+  
+      // Update the local state if the status update is successful
       setEvents(events.map(event =>
         event.id === id ? { ...event, status } : event
-      ))
+      ));
     } catch (error) {
-      console.error('Error updating event status:', error)
+      console.error('Error updating event status:', error);
     }
-  }
+  };
 
   const todayEvents = events.filter(event => {
     const eventDate = new Date(event.date)

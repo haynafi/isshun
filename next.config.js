@@ -8,4 +8,8 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = {
+  images: {
+    domains: ['isshun.site'], // Add your domain here
+  },
+}

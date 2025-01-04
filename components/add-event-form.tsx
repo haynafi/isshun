@@ -31,7 +31,8 @@ import { CalendarIcon, Clock, Plane, Train, Bus, Car, Bike, Ship, Briefcase, Cof
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"  
+import { eventsApi } from '../services/api'
 
 const gradients = [
   { value: 'from-purple-200 to-purple-100', label: 'Purple' },
@@ -80,44 +81,36 @@ export function AddEventForm() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      const formData = new FormData()
+      const formData = new FormData();
       Object.entries(values).forEach(([key, value]) => {
         if (key === 'date') {
-          formData.append(key, format(value as Date, 'yyyy-MM-dd'))
+          formData.append(key, format(value as Date, 'yyyy-MM-dd'));
         } else if (key === 'qrCode' && value instanceof File) {
-          formData.append(key, value)
+          formData.append(key, value);
         } else {
-          formData.append(key, value as string)
+          formData.append(key, value as string);
         }
-      })
+      });
 
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error + ': ' + errorData.details)
-      }
+      await eventsApi.createEvent(formData);
 
       toast({
-        title: "Event added",
-        description: "Your event has been successfully added.",
-      })
-      router.push('/')
-      router.refresh()
+        title: 'Event added',
+        description: 'Your event has been successfully added.',
+      });
+      router.push('/');
+      router.refresh();
     } catch (error) {
-      console.error('Error adding event:', error)
+      console.error('Error adding event:', error);
       toast({
-        title: "Error",
+        title: 'Error',
         description: (error as Error).message,
-        variant: "destructive",
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
