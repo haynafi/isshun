@@ -1,7 +1,7 @@
 import { EventData } from "@/types/event";
 
 const API_URL = 'https://isshun.site/bridge';
-const API_KEY = process.env.BRIDGE_API_KEY || ''; // Default to an empty string if not defined
+const API_KEY = process.env.BRIDGE_API_KEY || 'h8UEevzsMDRKHanaPriska21hsKhMaNk'; // Default to an empty string if not defined
 
 export const eventsApi = {
   async getEvents(filter: string): Promise<EventData[]> {
