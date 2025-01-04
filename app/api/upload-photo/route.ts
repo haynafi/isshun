@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 import path from 'path';
 import fs from 'fs/promises';
+import os from 'os'; // Import the OS module
 
 const DRIVE_FOLDER_ID = '11IBbJ_JMWeSX-TzwkQLCPNNSDfl2lkKk';
 
@@ -45,11 +46,10 @@ function validateCredentials(credentials: GoogleAuthCredentials) {
 
 // Get Drive client
 async function getDriveClient() {
-  // Validate credentials before using
   validateCredentials(credentials);
 
   const auth = new google.auth.GoogleAuth({
-    credentials,  // Directly use the credentials object
+    credentials,
     scopes: ['https://www.googleapis.com/auth/drive'],
   });
 
@@ -57,7 +57,7 @@ async function getDriveClient() {
 }
 
 async function updatePhotoPath(eventId: string, fileUrl: string | null | undefined) {
-  const API_URL = 'https://isshun.site/bridge/update-photo'; // Your API endpoint
+  const API_URL = 'https://isshun.site/bridge/update-photo';
   const API_KEY = process.env.BRIDGE_API_KEY || 'h8UEevzsMDRKHanaPriska21hsKhMaNk';
 
   if (!API_KEY) {
@@ -71,13 +71,9 @@ async function updatePhotoPath(eventId: string, fileUrl: string | null | undefin
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify({
-        fileUrl: fileUrl,
-        eventId: eventId,
-      }),
+      body: JSON.stringify({ fileUrl, eventId }),
     });
 
-    // Log the response details for debugging
     const responseBody = await response.json();
     console.log('Response from /bridge/update-photo:', responseBody);
 
@@ -99,61 +95,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
-    // Debug logging
     console.log('Received photo data length:', photo.length);
     console.log('Photo data preview:', photo.substring(0, 100));
 
-    // Validate the base64 image data
     if (!photo.includes('base64')) {
-      console.error('Base64 header missing');
       return NextResponse.json({ error: 'Invalid image format' }, { status: 400 });
     }
 
-    // Extract the MIME type
     const mimeMatch = photo.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
     if (!mimeMatch) {
-      console.error('Invalid MIME type format');
       return NextResponse.json({ error: 'Invalid image format' }, { status: 400 });
     }
     const mimeType = mimeMatch[1];
-    console.log('Detected MIME type:', mimeType);
 
-    // Extract and decode the base64 data
     const base64Data = photo.split(';base64,').pop();
     if (!base64Data) {
-      console.error('No base64 data found after split');
       return NextResponse.json({ error: 'Invalid base64 data' }, { status: 400 });
     }
 
-    // Convert to buffer
     const buffer = Buffer.from(base64Data, 'base64');
     console.log('Buffer length:', buffer.length);
 
-    // Debug: Save a local copy of the image for inspection
-    const debugPath = path.join(process.cwd(), 'debug_image.jpg');
+    // Save a local copy of the image to a cross-platform temporary directory
+    const tempDir = os.tmpdir(); // Cross-platform temporary directory
+    const debugPath = path.join(tempDir, 'debug_image.jpg');
+
+    // Save the debug image
     await fs.writeFile(debugPath, buffer);
     console.log('Debug image saved to:', debugPath);
 
-    // Validate buffer size
     if (buffer.length === 0) {
-      console.error('Empty buffer created');
       return NextResponse.json({ error: 'Empty image data' }, { status: 400 });
     }
 
-    // Create readable stream
     const stream = Readable.from(buffer);
 
     const drive = await getDriveClient();
     const fileName = `photo_${eventId}_${Date.now()}.jpg`;
 
-    // Upload with proper MIME type
     const response = await drive.files.create({
       requestBody: {
         name: fileName,
         parents: [DRIVE_FOLDER_ID],
       },
       media: {
-        mimeType: mimeType,
+        mimeType,
         body: stream,
       },
       fields: 'id,webViewLink,webContentLink',
@@ -166,17 +152,16 @@ export async function POST(req: NextRequest) {
     const fileUrl = response.data.webViewLink;
     console.log('File uploaded successfully. URL:', fileUrl);
 
-    // Update the photo path via the /bridge/update-photo API
     await updatePhotoPath(eventId, fileUrl);
 
     return NextResponse.json({ 
       photoPath: fileUrl,
       fileId: response.data.id,
-      mimeType: mimeType,
+      mimeType,
       debugInfo: {
         originalLength: photo.length,
         bufferLength: buffer.length,
-        mimeType: mimeType
+        mimeType,
       }
     });
   } catch (error) {
