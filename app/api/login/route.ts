@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 
 // Hardcoded users
 const users = [
-  { email: 'hana@isshun.site', password: 'Hanacakep21', name: 'Hana' },
+  { email: 'hana@isshun.site', password: 'Hanacantik21', name: 'Hana' },
   { email: 'nafi@isshun.site', password: 'Nafijugacakep13', name: 'Nafi' }
 ]
 
