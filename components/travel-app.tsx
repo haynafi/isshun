@@ -1,40 +1,55 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plane, Train, Bus, Home, Image, Ticket, User, Check, X } from 'lucide-react'
+import { Plane, Train, Bus, Home, Image, Ticket, User, Check, X, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { MoreMenu } from './more-menu'
-import { Gallery } from './gallery'; // Import the Gallery component
-import { eventsApi } from '../services/api';
-import { EventData } from '../types/event';
+import { Gallery } from './gallery'
+import { eventsApi } from '../services/api'
+import { EventData } from '../types/event'
 
 export default function TravelApp() {
   const router = useRouter()
   const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'previous'>('upcoming')
-  const [events, setEvents] = useState<EventData[]>([]);
+  const [events, setEvents] = useState<EventData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activePage, setActivePage] = useState<'home' | 'gallery' | 'profile'>('home'); // Track the active page
-
+  const [activePage, setActivePage] = useState<'home' | 'gallery' | 'profile'>('home')
+  const [userName, setUserName] = useState<string>('')
 
   useEffect(() => {
-    async function fetchEvents() {
-      if (activePage !== 'home') return;
-      
-      setIsLoading(true);
+    async function fetchUserName() {
       try {
-        const data = await eventsApi.getEvents(selectedFilter);
-        setEvents(data);
+        const response = await fetch('/api/user')
+        if (response.ok) {
+          const data = await response.json()
+          setUserName(data.name)
+        }
       } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error fetching user name:', error)
       }
     }
 
-    fetchEvents();
-  }, [selectedFilter, activePage]);
+    fetchUserName()
+  }, [])
 
+  useEffect(() => {
+    async function fetchEvents() {
+      if (activePage !== 'home') return
+      
+      setIsLoading(true)
+      try {
+        const data = await eventsApi.getEvents(selectedFilter)
+        setEvents(data)
+      } catch (error) {
+        console.error('Error:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEvents()
+  }, [selectedFilter, activePage])
 
   const handlePeek = (id: number) => {
     router.push(`/ticket/${id}`)
@@ -42,18 +57,15 @@ export default function TravelApp() {
 
   const handleStatusUpdate = async (id: number, status: 'accepted' | 'declined') => {
     try {
-      // Call the API function instead of fetch
-      await eventsApi.updateEventStatus(id.toString(), status); // Use await, don't need to assign to a variable
-
+      await eventsApi.updateEventStatus(id.toString(), status)
   
-      // Update the local state if the status update is successful
       setEvents(events.map(event =>
         event.id === id ? { ...event, status } : event
-      ));
+      ))
     } catch (error) {
-      console.error('Error updating event status:', error);
+      console.error('Error updating event status:', error)
     }
-  };
+  }
 
   const todayEvents = events.filter(event => {
     const eventDate = new Date(event.date)
@@ -129,7 +141,7 @@ export default function TravelApp() {
     <div className="flex min-h-screen flex-col bg-gray-50 pb-[72px]">
       <div className="flex-1 space-y-6 p-6">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Hello Nafi!</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Hello {userName}!</h1>
           <p className="text-gray-500">Let&apos;s see your events!</p>
         </div>
 
@@ -184,7 +196,23 @@ export default function TravelApp() {
         )}
       </div>
     </div>
-  );
+  )
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        router.push('/login')
+      } else {
+        console.error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
 
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-xl relative max-w-md mx-auto mt-8">
@@ -216,6 +244,13 @@ export default function TravelApp() {
             >
               <User className="h-6 w-6" />
               <span>Profile</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex flex-col items-center text-sm text-gray-600"
+            >
+              <LogOut className="h-6 w-6" />
+              <span>Logout</span>
             </button>
           </div>
         </div>

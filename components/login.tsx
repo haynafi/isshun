@@ -1,17 +1,37 @@
 'use client'
 
 import { useState } from 'react'
-import { User, Lock } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { User, Lock, AlertCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const router = useRouter()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle login logic here
-    console.log('Login attempt with:', email, password)
+    setError('')
+    
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        router.push('/')
+      } else {
+        setError(data.message || 'Login failed')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('An unexpected error occurred')
+    }
   }
 
   return (
@@ -22,6 +42,15 @@ export default function Login() {
             <h1 className="text-2xl font-bold tracking-tight">Welcome Back!</h1>
             <p className="text-gray-500">Sign in to your account</p>
           </div>
+
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <span>{error}</span>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -56,18 +85,11 @@ export default function Login() {
             </div>
             <button
               type="submit"
-              className={cn(
-                'w-full rounded-full px-8 py-2 text-sm font-medium transition-colors',
-                'bg-purple-500 text-white hover:bg-purple-600'
-              )}
+              className="w-full rounded-full px-8 py-2 text-sm font-medium transition-colors bg-purple-500 text-white hover:bg-purple-600"
             >
               Sign In
             </button>
           </form>
-
-          <div className="text-center">
-            <a href="#" className="text-sm text-purple-600 hover:underline">Forgot password?</a>
-          </div>
         </div>
       </div>
     </div>
