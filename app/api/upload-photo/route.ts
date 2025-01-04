@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 import path from 'path';
-import { query } from '@/lib/db';
 import fs from 'fs/promises';
 
 const DRIVE_FOLDER_ID = '11IBbJ_JMWeSX-TzwkQLCPNNSDfl2lkKk';

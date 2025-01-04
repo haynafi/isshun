@@ -9,19 +9,6 @@ import { Gallery } from './gallery'; // Import the Gallery component
 import { eventsApi } from '../services/api';
 import { EventData } from '../types/event';
 
-
-
-interface Event {
-  id: number
-  title: string
-  place: string
-  gradient: string
-  icon: string
-  date: string
-  time: string
-  status: 'pending' | 'accepted' | 'declined'
-}
-
 export default function TravelApp() {
   const router = useRouter()
   const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'previous'>('upcoming')
@@ -56,7 +43,8 @@ export default function TravelApp() {
   const handleStatusUpdate = async (id: number, status: 'accepted' | 'declined') => {
     try {
       // Call the API function instead of fetch
-      const response = await eventsApi.updateEventStatus(id.toString(), status);
+      await eventsApi.updateEventStatus(id.toString(), status); // Use await, don't need to assign to a variable
+
   
       // Update the local state if the status update is successful
       setEvents(events.map(event =>
