@@ -4,6 +4,21 @@ const API_URL = 'https://isshun.site/bridge';
 const API_KEY = process.env.BRIDGE_API_KEY || 'h8UEevzsMDRKHanaPriska21hsKhMaNk'; // Default to an empty string if not defined
 
 export const eventsApi = {
+  async getPhotos(): Promise<EventData[]> {
+    if (!API_KEY) {
+      throw new Error('API Key is missing.');
+    }
+    const response = await fetch(`${API_URL}/photo`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch events');
+    return response.json();
+  },
+
   async getEvents(filter: string): Promise<EventData[]> {
     if (!API_KEY) {
       throw new Error('API Key is missing.');

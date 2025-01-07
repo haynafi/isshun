@@ -26,5 +26,5 @@ export interface EventData {  // Renamed from Event to EventData
   time: string;
   status?: 'pending' | 'accepted' | 'declined';
   qr_code_path?: string;
-  photo_path?: string;
+  photo_path: string;
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { Camera, AlertCircle } from 'lucide-react'
+import { Camera, AlertCircle, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -12,9 +12,10 @@ export function TicketDetail() {
   const [event, setEvent] = useState<EventData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null); // For the captured photo
+  const [photo, setPhoto] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -58,7 +59,7 @@ export function TicketDetail() {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: 'user'
+          facingMode: isFrontCamera ? 'user' : 'environment'
         }
       })
       
@@ -70,7 +71,6 @@ export function TicketDetail() {
       videoRef.current.srcObject = stream
       streamRef.current = stream
 
-      // Handle video element events
       videoRef.current.onloadedmetadata = () => {
         console.log('Video metadata loaded')
         if (videoRef.current) {
@@ -135,6 +135,11 @@ export function TicketDetail() {
         throw new Error('Failed to get canvas context')
       }
 
+      if (isFrontCamera) {
+        context.translate(canvas.width, 0)
+        context.scale(-1, 1)
+      }
+
       context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
       const photoData = canvas.toDataURL('image/jpeg', 0.95)
       console.log('Photo captured successfully')
@@ -166,7 +171,6 @@ export function TicketDetail() {
             const formData = new FormData();
             formData.append('photo', blob, `photo_${id}.jpg`);
 
-            // Ensure id is defined and is a string before appending to FormData
             if (typeof id === 'string') {
                 formData.append('eventId', id);
             } else {
@@ -180,9 +184,16 @@ export function TicketDetail() {
     } catch (error) {
         console.error('Error taking photo:', error);
     }
-}
+  }
 
-  // Cleanup camera on unmount
+  const switchCamera = async () => {
+    setIsFrontCamera(!isFrontCamera);
+    if (isCapturing) {
+      stopCamera();
+      await startCamera();
+    }
+  }
+
   useEffect(() => {
     return () => {
       stopCamera()
@@ -268,8 +279,15 @@ export function TicketDetail() {
               autoPlay
               playsInline
               muted
-              className="w-full rounded"
+              className={`w-full rounded ${isFrontCamera ? 'transform scale-x-[-1]' : ''}`}
             />
+            <button
+              onClick={switchCamera}
+              className="absolute top-2 right-2 bg-white/70 rounded-full p-2"
+              aria-label="Switch camera"
+            >
+              <RefreshCw className="h-5 w-5 text-gray-800" />
+            </button>
           </div>
         )}
         {!isCapturing && photo && (

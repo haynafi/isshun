@@ -2,38 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { format } from 'date-fns';
-import { Camera } from 'lucide-react';
+import { Camera, ChevronLeft, X } from 'lucide-react';
+import { eventsApi } from '../services/api';
 
 interface Photo {
   id: number;
-  photo_path: string;
   title: string;
-  date: string;
+  place: string;
+  photo_path: string;
 }
-
-// Function to convert Google Drive URL to direct image URL
-const getGoogleDriveDirectUrl = (url: string) => {
-  // Default placeholder in case of invalid URL
-  const placeholderUrl = '/placeholder.svg?height=400&width=400';
-  
-  if (!url) return placeholderUrl;
-  
-  try {
-    const fileId = url.match(/\/d\/(.+?)\//)?.[1];
-    if (!fileId) {
-      return placeholderUrl;
-    }
-    return `https://drive.google.com/uc?export=view&id=${fileId}`;
-  } catch {
-    return placeholderUrl;
-  }
-};
 
 export function Gallery() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
 
   useEffect(() => {
     async function fetchPhotos() {
@@ -41,12 +25,7 @@ export function Gallery() {
       setError(null);
 
       try {
-        const response = await fetch(`${window.location.origin}/api/photos`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch photos');
-        }
-
-        const data = await response.json();
+        const data = await eventsApi.getPhotos();
         setPhotos(data);
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Failed to fetch photos');
@@ -57,6 +36,25 @@ export function Gallery() {
 
     fetchPhotos();
   }, []);
+
+  const openFullscreen = (photo: Photo, index: number) => {
+    setSelectedPhoto(photo);
+    setSelectedIndex(index);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeFullscreen = () => {
+    setSelectedPhoto(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  const navigatePhoto = (direction: 'prev' | 'next') => {
+    const newIndex = direction === 'prev' 
+      ? (selectedIndex - 1 + photos.length) % photos.length 
+      : (selectedIndex + 1) % photos.length;
+    setSelectedPhoto(photos[newIndex]);
+    setSelectedIndex(newIndex);
+  };
 
   if (isLoading) {
     return (
@@ -75,47 +73,79 @@ export function Gallery() {
     );
   }
 
-  // For demonstration, using placeholder data if no photos
-  const displayPhotos = photos.length > 0 ? photos : [
-    { id: 1, title: 'Test', date: '2024-12-27', photo_path: 'https://drive.google.com/file/d/1JqJF90QpJ8VRQkl5K9V8oqkasr7urMqg/view' },
-    { id: 2, title: 'TE...', date: '2024-12-30', photo_path: 'https://drive.google.com/file/d/1JqJF90QpJ8VRQkl5K9V8oqkasr7urMqg/view' },
-    { id: 3, title: 'hello', date: '2024-12-31', photo_path: 'https://drive.google.com/file/d/1JqJF90QpJ8VRQkl5K9V8oqkasr7urMqg/view' },
-  ];
-
   return (
     <div className="min-h-screen pb-16">
       <div className="p-6">
         <h1 className="text-2xl font-semibold mb-6 text-center">Photo Gallery</h1>
-        <div className="space-y-4">
-          {displayPhotos.map((photo) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {photos.map((photo, index) => (
             <div
               key={photo.id}
-              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
+              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative cursor-pointer"
+              onClick={() => openFullscreen(photo, index)}
             >
-              <div className="relative h-48 w-full">
+              <div className="relative aspect-square">
                 <Image
-                  src={getGoogleDriveDirectUrl(photo.photo_path)}
+                  src={photo.photo_path}
                   alt={photo.title}
                   fill
                   className="object-cover"
-                  priority
-                  unoptimized
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                 />
-                <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
-                  <div className="flex flex-col items-end">
-                    <p className="text-sm font-medium text-gray-900">
-                      {photo.title}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {format(new Date(photo.date), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {selectedPhoto && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <div className="flex justify-between items-center p-4 text-white">
+            <button onClick={closeFullscreen} className="p-2">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div className="text-center flex-grow">
+              <h2 className="text-lg font-semibold">{selectedPhoto.title}</h2>
+              <p className="text-sm text-gray-300">{selectedPhoto.place}</p>
+            </div>
+            <button onClick={closeFullscreen} className="p-2">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="flex-grow relative">
+            <Image
+              src={selectedPhoto.photo_path}
+              alt={selectedPhoto.title}
+              fill
+              className="object-contain"
+              sizes="100vw"
+              priority
+            />
+          </div>
+          <div className="p-4 bg-black bg-opacity-50">
+            <div className="flex space-x-2 overflow-x-auto pb-2">
+              {photos.map((photo, index) => (
+                <div
+                  key={photo.id}
+                  className={`relative w-16 h-16 flex-shrink-0 cursor-pointer ${
+                    index === selectedIndex ? 'ring-2 ring-white' : ''
+                  }`}
+                  onClick={() => openFullscreen(photo, index)}
+                >
+                  <Image
+                    src={photo.photo_path}
+                    alt={photo.title}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
