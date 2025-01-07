@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { Camera, AlertCircle, RefreshCw } from 'lucide-react'
+import { Camera, AlertCircle, RefreshCw, Loader } from 'lucide-react'
 import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -16,6 +16,7 @@ export function TicketDetail() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -154,35 +155,39 @@ export function TicketDetail() {
 
   const handleTakePhoto = async () => {
     try {
-        if (!isCapturing) {
-            await startCamera();
-        } else if (isCameraReady) {
-            const photoData = capturePhoto();
-            if (!photoData) {
-                throw new Error('Failed to capture photo');
-            }
-
-            setPhoto(photoData);
-            console.log('Uploading photo...');
-
-            const response = await fetch(photoData);
-            const blob = await response.blob();
-
-            const formData = new FormData();
-            formData.append('photo', blob, `photo_${id}.jpg`);
-
-            if (typeof id === 'string') {
-                formData.append('eventId', id);
-            } else {
-                throw new Error('Event ID is undefined or not a string');
-            }
-
-            const uploadResponse = await eventsApi.uploadPhoto(formData);
-            console.log('Photo uploaded successfully:', uploadResponse.photoPath);
-            setPhoto(uploadResponse.photoPath);
+      if (!isCapturing) {
+        await startCamera();
+      } else if (isCameraReady) {
+        const photoData = capturePhoto();
+        if (!photoData) {
+          throw new Error('Failed to capture photo');
         }
+
+        setPhoto(photoData);
+        console.log('Uploading photo...');
+        setIsUploading(true);
+
+        const response = await fetch(photoData);
+        const blob = await response.blob();
+
+        const formData = new FormData();
+        formData.append('photo', blob, `photo_${id}.jpg`);
+
+        if (typeof id === 'string') {
+          formData.append('eventId', id);
+        } else {
+          throw new Error('Event ID is undefined or not a string');
+        }
+
+        const uploadResponse = await eventsApi.uploadPhoto(formData);
+        console.log('Photo uploaded successfully:', uploadResponse.photoPath);
+        setPhoto(uploadResponse.photoPath);
+      }
     } catch (error) {
-        console.error('Error taking photo:', error);
+      console.error('Error taking photo:', error);
+      setError(error instanceof Error ? error.message : 'Failed to take or upload photo');
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -299,15 +304,24 @@ export function TicketDetail() {
 
         <button
           onClick={handleTakePhoto}
-          disabled={isCapturing && !isCameraReady}
+          disabled={isCapturing && !isCameraReady || isUploading}
           className={`flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-medium ${
-            isCapturing && !isCameraReady 
+            isCapturing && !isCameraReady || isUploading
               ? 'bg-gray-400 cursor-not-allowed' 
               : 'bg-gray-900 hover:bg-gray-800'
           } text-white`}
         >
-          <Camera className="h-4 w-4" />
-          {!isCapturing ? 'Start Camera' : isCameraReady ? 'Capture Photo' : 'Starting Camera...'}
+          {isUploading ? (
+            <>
+              <Loader className="h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Camera className="h-4 w-4" />
+              {!isCapturing ? 'Start Camera' : isCameraReady ? 'Capture Photo' : 'Starting Camera...'}
+            </>
+          )}
         </button>
       </div>
     </div>
