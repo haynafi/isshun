@@ -48,14 +48,6 @@ export function Gallery() {
     document.body.style.overflow = 'unset';
   };
 
-  const navigatePhoto = (direction: 'prev' | 'next') => {
-    const newIndex = direction === 'prev' 
-      ? (selectedIndex - 1 + photos.length) % photos.length 
-      : (selectedIndex + 1) % photos.length;
-    setSelectedPhoto(photos[newIndex]);
-    setSelectedIndex(newIndex);
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen pb-16">
