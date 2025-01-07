@@ -7,6 +7,11 @@ import { useParams } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { eventsApi } from '../services/api'
 import { EventData } from '@/types/event'
+import { useToast } from "@/hooks/use-toast"
+import {
+  ToastProvider,
+  ToastViewport,
+} from "@/components/ui/toast"
 
 export function TicketDetail() {
   const [event, setEvent] = useState<EventData | null>(null);
@@ -22,6 +27,7 @@ export function TicketDetail() {
   const streamRef = useRef<MediaStream | null>(null);
 
   const { id } = useParams();
+  const { toast } = useToast()
 
   useEffect(() => {
     async function fetchEvent() {
@@ -164,6 +170,10 @@ export function TicketDetail() {
         }
 
         setPhoto(photoData);
+        toast({
+          title: "Success",
+          description: "Photo captured successfully!",
+        })
         console.log('Uploading photo...');
         setIsUploading(true);
 
@@ -182,10 +192,19 @@ export function TicketDetail() {
         const uploadResponse = await eventsApi.uploadPhoto(formData);
         console.log('Photo uploaded successfully:', uploadResponse.photoPath);
         setPhoto(uploadResponse.photoPath);
+        toast({
+          title: "Success",
+          description: "Photo uploaded successfully!",
+        })
       }
     } catch (error) {
       console.error('Error taking photo:', error);
       setError(error instanceof Error ? error.message : 'Failed to take or upload photo');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to capture or upload photo. Please try again.",
+      })
     } finally {
       setIsUploading(false);
     }
@@ -223,108 +242,111 @@ export function TicketDetail() {
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl bg-white shadow-xl relative max-w-md mx-auto mt-8">
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-4 bg-gray-50 rounded-r-full" />
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-4 bg-gray-50 rounded-l-full" />
+    <ToastProvider>
+      <div className="overflow-hidden rounded-3xl bg-white shadow-xl relative max-w-md mx-auto mt-8">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-4 bg-gray-50 rounded-r-full" />
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-4 bg-gray-50 rounded-l-full" />
 
-      <div className={`relative px-6 pb-6 pt-8 ${event.gradient}`}>
-        <div className="grid grid-cols-2 gap-8">
-          <div>
-            <p className="text-sm text-gray-500">Event</p>
-            <p className="font-medium">{event.title}</p>
+        <div className={`relative px-6 pb-6 pt-8 ${event.gradient}`}>
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <p className="text-sm text-gray-500">Event</p>
+              <p className="font-medium">{event.title}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Date</p>
+              <p className="font-medium">{new Date(event.date).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Location</p>
+              <p className="font-medium">{event.place}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Time</p>
+              <p className="font-medium">{event.time}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Date</p>
-            <p className="font-medium">{new Date(event.date).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Location</p>
-            <p className="font-medium">{event.place}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Time</p>
-            <p className="font-medium">{event.time}</p>
+          <div className="absolute right-6 top-6 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+            {event.icon}
           </div>
         </div>
-        <div className="absolute right-6 top-6 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
-          {event.icon}
+
+        <div className="relative">
+          <div className="absolute inset-x-0 h-px bg-gray-200" />
         </div>
-      </div>
 
-      <div className="relative">
-        <div className="absolute inset-x-0 h-px bg-gray-200" />
-      </div>
+        <div className="p-6">
+          <div className="relative mb-6">
+            <p className="text-center text-sm text-gray-400 mb-2">Event QR Code</p>
+            {event.qr_code_path ? (
+              <Image
+                src={event.qr_code_path}
+                alt="QR Code"
+                width={300}
+                height={300}
+                className="w-full"
+              />
+            ) : (
+              <div className="w-full h-[300px] bg-gray-200 flex items-center justify-center text-gray-500">
+                No QR Code Available
+              </div>
+            )}
+            <p className="mt-2 text-center text-xs text-gray-400">Scan for event details</p>
+          </div>
 
-      <div className="p-6">
-        <div className="relative mb-6">
-          <p className="text-center text-sm text-gray-400 mb-2">Event QR Code</p>
-          {event.qr_code_path ? (
-            <Image
-              src={event.qr_code_path}
-              alt="QR Code"
-              width={300}
-              height={300}
-              className="w-full"
-            />
-          ) : (
-            <div className="w-full h-[300px] bg-gray-200 flex items-center justify-center text-gray-500">
-              No QR Code Available
+          {isCapturing && (
+            <div className="relative mb-6">
+              <p className="text-center text-sm text-gray-400 mb-2">
+                {isCameraReady ? 'Camera Ready' : 'Starting camera...'}
+              </p>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full rounded ${isFrontCamera ? 'transform scale-x-[-1]' : ''}`}
+              />
+              <button
+                onClick={switchCamera}
+                className="absolute top-2 right-2 bg-white/70 rounded-full p-2"
+                aria-label="Switch camera"
+              >
+                <RefreshCw className="h-5 w-5 text-gray-800" />
+              </button>
             </div>
           )}
-          <p className="mt-2 text-center text-xs text-gray-400">Scan for event details</p>
-        </div>
-
-        {isCapturing && (
-          <div className="relative mb-6">
-            <p className="text-center text-sm text-gray-400 mb-2">
-              {isCameraReady ? 'Camera Ready' : 'Starting camera...'}
-            </p>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className={`w-full rounded ${isFrontCamera ? 'transform scale-x-[-1]' : ''}`}
-            />
-            <button
-              onClick={switchCamera}
-              className="absolute top-2 right-2 bg-white/70 rounded-full p-2"
-              aria-label="Switch camera"
-            >
-              <RefreshCw className="h-5 w-5 text-gray-800" />
-            </button>
-          </div>
-        )}
-        {!isCapturing && photo && (
-          <div className="mb-6">
-            <p className="text-center text-sm text-gray-400 mb-2">Captured Photo</p>
-            <img src={photo} alt="Captured" className="w-full rounded" />
-          </div>
-        )}
-
-        <button
-          onClick={handleTakePhoto}
-          disabled={isCapturing && !isCameraReady || isUploading}
-          className={`flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-medium ${
-            isCapturing && !isCameraReady || isUploading
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-gray-900 hover:bg-gray-800'
-          } text-white`}
-        >
-          {isUploading ? (
-            <>
-              <Loader className="h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Camera className="h-4 w-4" />
-              {!isCapturing ? 'Start Camera' : isCameraReady ? 'Capture Photo' : 'Starting Camera...'}
-            </>
+          {!isCapturing && photo && (
+            <div className="mb-6">
+              <p className="text-center text-sm text-gray-400 mb-2">Captured Photo</p>
+              <img src={photo} alt="Captured" className="w-full rounded" />
+            </div>
           )}
-        </button>
+
+          <button
+            onClick={handleTakePhoto}
+            disabled={isCapturing && !isCameraReady || isUploading}
+            className={`flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-medium ${
+              isCapturing && !isCameraReady || isUploading
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-gray-900 hover:bg-gray-800'
+            } text-white`}
+          >
+            {isUploading ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Camera className="h-4 w-4" />
+                {!isCapturing ? 'Start Camera' : isCameraReady ? 'Capture Photo' : 'Starting Camera...'}
+              </>
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+      <ToastViewport />
+    </ToastProvider>
   )
 }
 

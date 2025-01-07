@@ -238,13 +238,13 @@ export default function TravelApp() {
               <Image className="h-6 w-6" />
               <span>Gallery</span>
             </button>
-            <button
+            {/* <button
               onClick={() => setActivePage('profile')}
               className="flex flex-col items-center text-sm text-gray-600"
             >
               <User className="h-6 w-6" />
               <span>Profile</span>
-            </button>
+            </button> */}
             <button
               onClick={handleLogout}
               className="flex flex-col items-center text-sm text-gray-600"
